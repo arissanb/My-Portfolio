@@ -1,0 +1,398 @@
+---
+title: "Diamonds Dataset Exploration"
+author: "Arissa Noordina Bahari"
+date: "2023-06-29"
+output: html_document
+---
+
+Hi! Today, we'll be analysing and discussing the [diamonds dataset](https://www.kaggle.com/datasets/shivam2503/diamonds).
+
+This dataset contains information of close to 54,000 diamonds including attributes such as price, clarity and carat. The full list of variables is listed below:
+
+* Price: price in US dollars 
+
+* Carat: weight of the diamond 
+
+* Cut: quality of the cut (Fair (worst), Good, Very Good, Premium, Ideal(best))
+
+* Color: diamond colour, from D (best) to J (worst)
+
+* Clarity: a measurement of how clear the diamond is (I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+
+* x: length in mm
+
+* y: width in mm 
+
+* z: depth in mm 
+
+* Depth: total depth percentage = z / mean(x, y) = 2 * z / (x + y) 
+
+* Table: width of top of diamond relative to widest point 
+
+![Table of diamond measurements](https://ggplot2-book.org/diagrams/diamond-dimensions.png)
+
+To analyse the dataset, we'll be taking the following steps:
+
+1. Loading the libraries
+
+2. Loading the data
+
+3. Basic data exploration and summary
+
+4. Data preprocessing
+
+5. EDA
+
+6. Answering key questions
+
+
+
+
+# 1: Loading the libraries
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+```
+
+# 2: Loading the data
+
+```{r}
+#diamonds = read.csv("../input/diamonds/diamonds.csv")
+attach(diamonds)
+df = diamonds
+
+```
+
+# 3: Basic data exploration and summary
+
+```{r}
+dim(df) #Viewing the dimensions of the dataset
+str(df) #Viewing dataset structure
+summary(df) #Summary statistics
+```
+
+# 4: Data Preprocessing
+
+```{r}
+# Checking for null values
+is.null(df) 
+
+# Convert multiple columns to factors
+df[, c("cut", "color", "clarity")] <- lapply(df[, c("cut", "color", "clarity")], factor)
+str(df)
+
+# Remove rows that have 0 in column x,y,z
+
+df = df %>% 
+  filter(x != 0, y!=0, z!=0)
+
+```
+
+We take these preprocessing steps:
+
+* Checking for null values
+* Converting the *cut*, *color*, *clarity* columns to factor aka categorical variables
+* Filtering out x, y and z columns that have 0 in their measurements, as it is impossible for those measurements to be 0 on a diamond
+
+# 5: EDA
+
+## Understanding the distribution of our variables
+
+### Carat
+```{r}
+par(mfrow = c(2,1))
+
+boxplot(carat, data = df, main = "Boxplot of Carat", horizontal = TRUE)
+hist(df$carat, main = "Histogram of Carat", xlab = 'Carat')
+```
+
+**Observations: **
+
+* The `carat` variable is right skewed, based on the boxplot and histogram. 
+
+* Most values fall between 0.2 (min) and 0.7 (median).
+
+### Depth
+
+```{r}
+boxplot(depth, data = df, main = "Boxplot of Depth", horizontal = TRUE)
+hist(df$depth, main = "Histogram of Depth", xlab = "Depth")
+```
+
+**Observations: **
+
+* The `depth` variable is nearly symmetrical, based on the boxplot, histogram, mean (61.75) and median (61.8) values. 
+
+* There are many outliers.
+
+### Table
+
+```{r}
+boxplot(table, data = df, main = "Boxplot of Table", horizontal = TRUE)
+hist(df$table, main = "Histogram of Table", xlab = "Table")
+```
+
+**Observations: **
+
+* The `table` variable is normally distributed, based on the boxplot, histogram, median (57.0) and mean (57.46). 
+* There are more outliers to the right of the median than the left.
+
+### Price 
+
+```{r}
+boxplot(price, data = df, main = "Boxplot of Price", horizontal = TRUE)
+hist(df$price, main = "Histogram of Price", xlab = "Price")
+```
+
+**Observations: **
+
+* The `price` variable is right skewed, based on the boxplot and histogram. 
+
+* Most prices fall between 326 (min) and 2401 (median) 
+
+### X, Y and Z
+
+```{r}
+par(mfrow = c(3,1))
+hist(df$x, main = "Histogram of Length (mm)", xlab = "Length (mm)")
+hist(df$y, main = "Histogram of Width (mm)", xlab = "Width (mm)")
+hist(df$z, main = "Histogram of Depth (mm)", xlab = "Depth (mm)")
+```
+
+**Observations: **
+
+* Generally, the `x` variable is uniformly distributed, based on the boxplot. 
+
+* The `y` variable is left skewed, based on the histogram.
+
+* The `z` variable is right skewed, based on the histogram.
+
+### Cut
+
+```{r}
+ggplot(data = df, aes(x = cut, fill = cut)) +
+  geom_bar() +
+  ggtitle("Count of Diamond Cuts") +
+  labs(x = "Cut", y = "Count")
+```
+
+**Observations: **
+
+* Ideal is the most common diamond cut, while fair is the least common.
+
+### Color
+
+```{r}
+ggplot(data = df, aes(x = color, fill = color)) +
+  geom_bar() +
+  ggtitle("Count of Diamond Colours") +
+  labs(x = "Color", y = "Count")
+```
+
+**Observations: **
+
+* G is the most common diamond colour, and J is the least common. 
+
+### Clarity
+
+```{r}
+ggplot(data = df, aes(x = clarity, fill = clarity)) +
+  geom_bar() +
+  ggtitle("Count of Diamond Clarity (I1 (worst) to VVS2(best))") +
+  labs(x = "Clarity", y = "Count")
+```
+
+**Observations: **
+
+* SI1 is the most common diamond clarity, while I1 is the least common.
+ 
+
+# 6: Asking questions of our data
+
+## How does carat weight affect the price of diamonds?
+
+```{r}
+ggplot(data = df, aes(x = carat, y = price, color = cut)) +
+        geom_point(size = 3, shape = 16, alpha = 0.3) +
+        geom_smooth(color = "red", method = "lm", se = FALSE) +
+        labs(x = "Carat", y = "Price ($)", title = "Carat vs Price for ALL Diamonds") 
+```
+**Observations: **
+
+* From the trendline, we can observe there is a positive relationship between carat and price for all diamonds. 
+
+* This means that as carat increases, price also increases for ALL diamonds.
+
+```{r}
+ggplot(data = df, aes(x = carat, y = price, color = cut)) +
+  geom_point(size = 3, shape = 16, alpha = 0.3) +
+  geom_smooth(color = "red", method = "lm",se = FALSE) +
+  labs(x = "Carat", y = "Price ($)", title = "Carat vs Price by Cut") +
+  facet_wrap(~cut,)
+```
+
+**Observations: **
+
+* If we were to view the relationship by cut, we would get the same result.
+
+## Is there a relationship between the cut quality of a diamond and its price?
+
+```{r}
+ggplot(data = df, aes(x = price, y = cut, fill = cut)) +
+  geom_boxplot() +
+  labs(x = "Price ($)", y = "Cut", title = "Cut vs Price") 
+```
+
+```{r}
+ggplot(data = df, aes(x = cut, y = price, fill = cut)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width=0.03, fill="white")+
+  labs(x = "Cut",y = "Price ($)" , title = "Cut vs Price") 
+```
+
+**Observations: **
+
+* From the boxplot and violin plot, we can observe that all diamond cuts are right skewed. 
+
+
+
+```{r}
+summary_stats_cut <- df %>% 
+  group_by(cut) %>% 
+  summarise(
+    Mean = mean(price),
+    Median = median(price),
+    Min = min(price),
+    Max = max(price)
+  )
+
+summary_stats_cut
+```
+
+* This can also be observed by the difference between the mean and median prices. The mean price is significantly higher than the median, indicating positive skew
+
+* From the summary table, we can observe that the *Ideal* cut has the lowest mean and median prices, while *Premium* has the highest mean and *Fair* has the highest median.
+
+## Does the color grade of a diamond impact its price?
+
+```{r}
+ggplot(data = df, aes(x = price, y = color, fill = color)) +
+  geom_boxplot() +
+  labs(x = "Price ($)", y = "Color", title = "Color vs Price") 
+```
+
+```{r}
+ggplot(data = df, aes(x = price, y = color, fill = color)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width=0.03, fill="white")+
+  labs(x = "Price ($)",y = "Color" , title = "Color vs Price") 
+```
+```{r}
+summary_stats_color <- df %>% 
+  group_by(color) %>% 
+  summarise(
+    Mean = mean(price),
+    Median = median(price),
+    Min = min(price),
+    Max = max(price)
+  )
+
+summary_stats_color
+```
+
+**Observations**
+
+* For all diamond colours, prices are right skewed. 
+
+* This can also be observed both by the boxplot and violin plot visualisations, and also the difference between the mean and median prices. The mean price is significantly higher than the median, indicating positive skew
+
+
+## Are there any patterns or trends in the distribution of diamond prices?
+
+```{r}
+ggplot(data = df, aes(x = price)) +
+  geom_histogram( fill ="red", bins= 20) +
+  labs(x = "Price", y = "Count", title = "Diamond Price Histogram ALL")
+
+ggplot(data = df, aes(x = price, fill = cut)) +
+  geom_histogram(bins = 20) +
+  labs(x = "Price", y = "Count", title = "Diamond Price Histogram by CUT")+
+  facet_wrap(~cut)
+```
+
+**Observations**
+
+* In general, the price for all diamonds is positively skewed.
+
+* By cut, generally the same observation rings true for all diamonds.
+
+
+## How does the carat weight vary across different diamond cuts?
+
+
+```{r}
+ggplot(data = df, aes(x = carat, y = cut, fill = cut)) +
+  geom_boxplot() 
+
+summary_stats_carat_cut <- df %>% 
+  group_by(cut) %>% 
+  summarise(
+    Mean = mean(carat),
+    Median = median(carat),
+    Min = min(carat),
+    Max = max(carat),
+    Absolute = max(carat) - min(carat)
+  )
+summary_stats_carat_cut
+```
+
+**Observations: **
+
+* Across all diamond cuts, carat is positively skewed.
+
+* Fair cut diamonds has the largest difference between the smallest and largest carat, while Good cut diamonds have the smallest difference
+
+* Ideal cut diamonds have the smallest median carat, while Fair cut diamonds have the largest.
+
+## What is the relationship between diamond cut and clarity?
+
+```{r}
+ggplot(data = df)+geom_bar(mapping = aes(x=cut,fill=clarity),
+                                position = "fill")+ggtitle("Cut Types & Clarity")+
+  xlab("Cut")+ylab("Frequency")
+```
+
+**Observations: **
+
+* Clarity I1 has the highest ratio in the Fair cut diamonds
+
+* Clarity VVS2 has the highest ratio in the Ideal cut diamonds.
+
+# Machine Learning
+
+For the diamonds dataset, we will use regression, a supervised machine learning algorithm to perform understand the effects of the different variables on diamond price.
+
+In this example, we will estimare the effect of `carat` on the price of diamonds in the dataset.
+
+```{r}
+
+model = lm(price ~ carat, data = df) #perform linear regression
+summary(model) #view the results of the regression
+
+```
+
+From the results, we can observe that `carat` is:
+
+* A statistically significant variable as it has a `p-value (Pr(>|t|))` of <2e-16
+* Explains 84.93% of the variation in `price`, as the Multiple R-Squared value is 0.8493
+* A statistically significant variable as it has a `p-value` of <2.2e-16, for the F-statistic
+
+```{r}
+#Plotting the fitted values and residuals
+plot(x = fitted.values(model), y = residuals(model), main = "Fitted values vs residuals plot", xlab = "Fitted values", ylab = "Residuals")
+```
+
+However, when we plot the fitted values against the residuals, we can see that the residuals have a non-random pattern. This indicates that the linear model would need to be tweaked to ensure randomness in the fitted vs residuals plot.
+
